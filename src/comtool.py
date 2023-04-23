@@ -69,8 +69,11 @@ class MainWindow(QMainWindow):
         # 创建文本框
         self.receive_text_text_browser = QTextEdit(self)
         self.receive_text_text_browser.setReadOnly(True)
+        self.clear_receive_text_button = QPushButton("清除")
+        self.clear_receive_text_button.clicked.connect(self.clear_receive_data)
         hbox = QHBoxLayout()
         hbox.addWidget(self.receive_text_text_browser)
+        hbox.addWidget(self.clear_receive_text_button)
         self.ocr_box.setLayout(hbox)
 
         # 初始化主界面布局
@@ -93,9 +96,7 @@ class MainWindow(QMainWindow):
         self.serial.errorOccurred.connect(self.handle_serial_error)
 
         # 获取可用串口信息
-        port_list = QSerialPortInfo.availablePorts()
-        for port in port_list:
-            self.port_combobox.addItem(port.portName())
+        self.refresh_serial_ports()
 
         # 设置波特率列表
         baudrate_list = ['9600', '19200', '38400', '57600', "74880", '115200', '921600', '1500000','3000000']
@@ -136,7 +137,6 @@ class MainWindow(QMainWindow):
         #     self.open_button.setEnabled(False)
         #     self.close_button.setEnabled
 
-
         # print("port:",self.port_combobox.currentText(),"\n")
         parity_dict = {'None': serial.PARITY_NONE, 'Odd': serial.PARITY_ODD,
                     'Even': serial.PARITY_EVEN, 'Mark': serial.PARITY_MARK,
@@ -162,11 +162,12 @@ class MainWindow(QMainWindow):
         self.start_read_thread()
 
     def close_serial(self):
-        # 关闭串口
-        self.serial.close()
-        self.statusBar().showMessage(f"已关闭串口 {self.serial.portstr}")
-        self.open_button.setEnabled(True)
-        self.close_button.setEnabled(False)
+        if self.serial.is_open:
+            # 关闭串口
+            self.serial.close()
+            self.statusBar().showMessage(f"已关闭串口 {self.serial.portstr}")
+            self.open_button.setEnabled(True)
+            self.close_button.setEnabled(False)
 
     def get_platform(self):
         import sys
@@ -191,7 +192,6 @@ class MainWindow(QMainWindow):
             self.port_combobox.clear()
             for item in self.com_dict.keys():
                 self.port_combobox.addItem(item)
-
 
             # 清空串口下拉列表
             # self.port_combobox.clear()
@@ -220,7 +220,8 @@ class MainWindow(QMainWindow):
         }
         error_message = error_dict[error]
         self.statusBar().showMessage(f"串口错误: {error_message}")
-
+    def clear_receive_data(self):
+        self.receive_text_text_browser.clear()
 
     def init_protocol(self):
         self.uartFrameHeaderTag = '5846'
@@ -429,9 +430,6 @@ class MainWindow(QMainWindow):
                 
                 self.uartRecvHexStr = ""
                 self.uartRecvList = []
-
-                
-
                 continue
             else:
                 # print( '帧头检测: ', (startPos, endPos) )
@@ -456,7 +454,6 @@ class MainWindow(QMainWindow):
                     self.uartRecvHexStr = ''
                     self.uartRecvList = list()
                     return
-
             
             # 1.luck mode
             if effectiveLen == self.uartFrameLenByte:
@@ -467,7 +464,6 @@ class MainWindow(QMainWindow):
                 if not self.get_frame_lrc_check_result(hex_list, self.uartFrameHeaderLen, self.uartFrameLenByte - self.uartFrameHeaderLen):
                     print(f'{effectiveLen} == {self.uartFrameLenByte}, 帧数据校验失败')
                     return
-                
 
                 # print('完整帧:', dataInfo[startPos:])
                 # print('完整帧')
@@ -528,14 +524,11 @@ class MainWindow(QMainWindow):
             return 
             
         # 2.pack Uart Frame
-
         print('该帧找不到header:', self.uartFrameHeaderTag)
         # self.uartRecvList = list()
         # self.uartRecvHexStr = ''
         # print(dataInfo)
-
         # dataInfo[search_pos:]
-
         return 
     
     def uart_response_feedback_send(self, command_code, data_type):
@@ -757,7 +750,12 @@ class MainWindow(QMainWindow):
                         # 在文本框中显示OCR文本
                         self.receive_text_text_browser.insertPlainText(text)
                         self.receive_text_text_browser.moveCursor(QTextCursor.End)
-                    
+                        # 获取当前字体
+                        font = self.receive_text_text_browser.font()
+                        # 设置字体大小为 14
+                        font.setPointSize(18)
+                        self.receive_text_text_browser.setFont(font)
+
                     else:
                         print("未知数据类型：{}".format(data_type))
                 elif frame_type == 0xFF and cmd == 0x50:
