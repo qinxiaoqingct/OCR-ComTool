@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
                         continue
                 com_dict["%s" % port[0]] = "%s" % port[1]
             if len(com_dict) == 0:
-                self.state_label.setText(" 无串口")
+                self.statusBar().showMessage("未检测到串口")
 
             self.com_dict = com_dict
 
