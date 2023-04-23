@@ -1,0 +1,216 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+#env:
+#  env.dist_name: ocr-com-toll 
+
+on:
+  push:
+    branches: [ master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    name: Build Source Lint Static and Pack Dist
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies (Linux || macOS)
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        echo "RUNNER_OS:"${{ runner.os }}
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        pip install -r requirements.txt
+        pip install https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz
+        echo "RUNNER_OS:"${{ runner.os }}
+      shell: pwsh
+     
+    - name: Set Up Project Environment(Linux || macOS)
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      run: |
+        echo "dist_name=comtool">>$GITHUB_ENV
+    - name: Set Up Project Environment(Windows)
+      if: runner.os == 'Windows'
+      run: |
+        echo "dist_name=comtool" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Lint with flake8
+      if: success()
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --ignore F821 --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Pack As Artifact (Linux || macOS)
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      run: |
+        if [ -f build.sh ]; then ./build.sh;fi
+    - name: Pack As Artifact (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cd src 
+        python package_script.py
+        cd -
+      shell: pwsh
+    - name: Check Pack Artifact Result
+      run: |
+        ls dist
+    - name: Upload Artifact (Linux || macOS)
+      uses: actions/upload-artifact@v2
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS')
+      with:
+        name: ${{env.dist_name}}-${{runner.os}}
+        path: dist/${{env.dist_name}}
+   
+    - name: Upload Artifact (Windows)
+      uses: actions/upload-artifact@v2
+      if: runner.os == 'Windows' 
+      with:
+        name: ${{env.dist_name}}-${{runner.os}}
+        path: dist/${{env.dist_name}}.exe
+    
+  publish:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        if: success()
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Changes in this Release
+          draft: false
+          prerelease: false 
+      - name: Save Publish Url In Environment
+        if: success()
+        run: |
+          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          echo "${{ steps.create_release.outputs.upload_url }}"> upload_url
+      - name: Upload Artifact (Linux || macOS || Windows)
+        uses: actions/upload-artifact@v2
+        if: success()
+        with:
+          name: upload_url
+          path: upload_url
+      
+  deploy:
+    name: Upload Release Asset
+    needs: publish
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download Publish Url for app
+        uses: actions/download-artifact@v2
+        with:
+          name: upload_url
+          path: ./
+      - name: Set Up Environment(Linux || macOS)
+        id: setup_env_linux_macos
+        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+        run: |
+          echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
+          echo "dist_name=comtool" >> $GITHUB_ENV
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" >> $GITHUB_ENV
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+      - name: Set Up Environment(Windows)
+        id: setup_env_windows
+        if: runner.os == 'Windows'
+        run: |
+          echo "upload_url=$(cat upload_url)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "dist_name=comtool" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+
+      - name: Download build result for app
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{env.dist_name}}-${{runner.os}}
+          path: ./
+
+      - name: Check Meta Data (Linux || macOS)
+        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+        run: |
+          if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
+          ls ${{env.dist_name}}
+
+      - name: Check Meta Data (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ls ${{env.dist_name}}.exe
+        shell: pwsh
+
+      - name: Upload Release Asset (Linux || macOS)
+        id: upload-release-asset-linux-macos
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        if: success() && (runner.os == 'Linux' || runner.os == 'macOS')
+        with:
+          upload_url: ${{env.upload_url}} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ${{env.dist_name}}
+          asset_name: ${{env.dist_name}}_${{runner.os}}_${{ env.tag_name }}
+          asset_content_type: application/gzip
+      - name: Upload Release Asset(Windows)
+        id: upload-release-asset-windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: runner.os == 'Windows'
+        with:
+          upload_url: ${{ env.upload_url }} 
+          asset_path: ${{ env.dist_name }}.exe
+          asset_name: ${{env.dist_name}}_${{runner.os}}_${{ env.tag_name }}.exe
+          asset_content_type: application/gzip
+
+  notice-wxworks:
+      name: Notice Release
+      needs: deploy
+      runs-on: ubuntu-latest
+      if: success() && startsWith(github.ref, 'refs/tags/v')
+      steps:
+        - name: notice wxwork when version releases
+          run: |
+            PROJECT_NAME_LO=$(echo ${{ github.repository }} )
+            VERSION=$(echo ${{github.ref }} | awk -F/ '{print $3}' )
+            content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}"
+            curl --header "Content-Type: application/json" \
+            --request POST \
+            --data "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"${content}\"}}" \
+            "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{secrets.WX_RELEASE_BOT_TOKEN}}"
