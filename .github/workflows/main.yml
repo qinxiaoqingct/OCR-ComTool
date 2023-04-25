@@ -26,7 +26,19 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
-    - name: Install dependencies (Linux || macOS)
+    - name: Install dependencies (Linux)
+      if: success() && ( runner.os == 'Linux' )
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then
+          # 针对 ubuntu-latest 版本执行的命令
+          echo "RUNNER_OS:"${{ runner.os }}
+        elif [[ "${{ matrix.os }}" == 'ubuntu-20.04' ]]; then
+          # 针对 ubuntu-20.04 版本执行的命令
+          echo "RUNNER_OS:"${{ runner.os }}
+    - name: Install dependencies (macOS)
       if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
       run: |
         python -m pip install --upgrade pip
@@ -43,10 +55,19 @@ jobs:
         echo "RUNNER_OS:"${{ runner.os }}
       shell: pwsh
      
-    - name: Set Up Project Environment(Linux || macOS)
-      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+    - name: Set Up Project Environment(Linux)
+      if: success() && ( runner.os == 'Linux' )
+      run: |
+        if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then
+          echo "dist_name=comtool_ubuntu_latest">>$GITHUB_ENV
+        elif [[ "${{ matrix.os }}" == 'ubuntu-20.04' ]]; then
+          echo "dist_name=comtool_ubuntu_20.04">>$GITHUB_ENV
+
+    - name: Set Up Project Environment(macOS)
+      if: success() && ( runner.os == 'macOS' )
       run: |
         echo "dist_name=comtool">>$GITHUB_ENV
+
     - name: Set Up Project Environment(Windows)
       if: runner.os == 'Windows'
       run: |
@@ -59,10 +80,25 @@ jobs:
         flake8 . --count --ignore F821 --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Pack As Artifact (Linux || macOS)
-      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+
+    - name: Pack As Artifact (Linux)
+      if: success() && ( runner.os == 'Linux' )
+      run: |
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            # Ubuntu 最新版本的打包命令
+            echo "Packaging for Ubuntu latest version"
+            if [ -f build.sh ]; then ./build.sh;fi
+
+        elif [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
+            # Ubuntu 20.04 版本的打包命令
+            echo "Packaging for Ubuntu 20.04"
+            if [ -f build.sh ]; then ./build.sh;fi
+
+    - name: Pack As Artifact (macOS)
+      if: success() && ( runner.os == 'macOS' )
       run: |
         if [ -f build.sh ]; then ./build.sh;fi
+
     - name: Pack As Artifact (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -70,12 +106,29 @@ jobs:
         python package_script.py
         cd -
       shell: pwsh
+
     - name: Check Pack Artifact Result
       run: |
         ls dist
-    - name: Upload Artifact (Linux || macOS)
+
+    - name: Upload Artifact (Linux )
       uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS')
+      if: success() && ( runner.os == 'Linux' )
+      with:
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            # Upload Artifact Ubuntu 最新版本的打包命令
+            echo "Upload Artifact Ubuntu 最新版本"
+            name: ${{env.dist_name}}-${{runner.os}}
+            path: dist/${{env.dist_name}}
+          elif [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
+            # Upload Artifact Ubuntu 20.04
+            echo "Upload Artifact Ubuntu 20.04"
+            name: ${{env.dist_name}}-${{runner.os}}
+            path: dist/${{env.dist_name}}
+
+    - name: Upload Artifact (macOS)
+      uses: actions/upload-artifact@v2
+      if: success() && ( runner.os == 'macOS')
       with:
         name: ${{env.dist_name}}-${{runner.os}}
         path: dist/${{env.dist_name}}
