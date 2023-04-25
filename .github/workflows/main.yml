@@ -111,24 +111,18 @@ jobs:
       run: |
         ls dist
 
-    # - name: Upload Artifact (Linux )
-    #   uses: actions/upload-artifact@v2
-    #   if: success() && ( runner.os == 'Linux' )
-    #   if: matrix.os == 'ubuntu-latest'
-    #     with:
-    #       name: ${{env.dist_name}}-${{runner.os}}
-    #       path: dist/${{env.dist_name}}
-    #   elif: matrix.os == 'ubuntu-20.04'
-    #     with:
-    #       name: ${{env.dist_name}}-${{runner.os}}
-    #       path: dist/${{env.dist_name}}
 
-    - name: Upload Artifact (Linux )
+    - name: Upload Artifact (Linux)
       uses: actions/upload-artifact@v2
-        if: success() && ( runner.os == 'Linux' )
-        with:
-          name: ${{env.dist_name}}-${{runner.os}}
-          path: dist/${{env.dist_name}}
+      if: success() && ( runner.os == 'Linux' )
+      with:
+        name: ${{env.dist_name}}-${{runner.os}}
+        path: dist/${{env.dist_name}}
+
+        # if: success() && ( runner.os == 'Linux' )
+        # with:
+        #   name: ${{env.dist_name}}-${{runner.os}}
+        #   path: dist/${{env.dist_name}}
       # if: success() && ( runner.os == 'Linux' ) && ( matrix.os == 'ubuntu-latest' ) 
       #   with:
       #     name: ${{env.dist_name}}-${{runner.os}}
