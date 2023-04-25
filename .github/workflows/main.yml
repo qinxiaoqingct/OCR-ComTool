@@ -56,9 +56,10 @@ jobs:
       if: success() && ( runner.os == 'Linux' )
       run: |
         if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then
-          echo "dist_name=comtool_ubuntu_latest">>$GITHUB_ENV
+          echo "dist_name=comtool_ubuntu_latest">>$GITHUB_ENV;
         elif [[ "${{ matrix.os }}" == 'ubuntu-20.04' ]]; then
-          echo "dist_name=comtool_ubuntu_20.04">>$GITHUB_ENV
+          echo "dist_name=comtool_ubuntu_20.04">>$GITHUB_ENV;
+        fi
 
     - name: Set Up Project Environment(macOS)
       if: success() && ( runner.os == 'macOS' )
