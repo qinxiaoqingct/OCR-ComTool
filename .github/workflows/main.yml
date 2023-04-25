@@ -18,7 +18,7 @@ jobs:
     name: Build Source Lint Static and Pack Dist
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-20.04]
+        os: [macos-latest, windows-latest, ubuntu-latest, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
