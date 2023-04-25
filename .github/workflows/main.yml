@@ -87,10 +87,11 @@ jobs:
             ./build.sh;
           fi
         fi
-
         elif [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
-            echo "Packaging for Ubuntu 20.04";
-            if [ -f build.sh ]; then ./build.sh;fi
+          echo "Packaging for Ubuntu 20.04";
+          if [ -f build.sh ]; then 
+            ./build.sh;
+          fi
         fi
     - name: Pack As Artifact (macOS)
       if: success() && ( runner.os == 'macOS' )
