@@ -114,18 +114,14 @@ jobs:
     - name: Upload Artifact (Linux )
       uses: actions/upload-artifact@v2
       if: success() && ( runner.os == 'Linux' )
-        if: ${{ matrix.os == 'ubuntu-latest' }} 
-        with:
-          # Upload Artifact Ubuntu 最新版本的打包命令
-          # echo "Upload Artifact Ubuntu 最新版本"
-          name: ${{env.dist_name}}-${{runner.os}}
-          path: dist/${{env.dist_name}}
-        else if: ${{ matrix.os == 'ubuntu-20.04' }}
-          # Upload Artifact Ubuntu 20.04
-          # echo "Upload Artifact Ubuntu 20.04"
-        with:
-          name: ${{env.dist_name}}-${{runner.os}}
-          path: dist/${{env.dist_name}}
+        if: matrix.os == 'ubuntu-latest'
+          with:
+            name: ${{env.dist_name}}-${{runner.os}}
+            path: dist/${{env.dist_name}}
+        else if: matrix.os == 'ubuntu-20.04'
+          with:
+            name: ${{env.dist_name}}-${{runner.os}}
+            path: dist/${{env.dist_name}}
 
     - name: Upload Artifact (macOS)
       uses: actions/upload-artifact@v2
