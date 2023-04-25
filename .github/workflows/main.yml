@@ -99,9 +99,6 @@ jobs:
       - name: Check GLIBC version
         run: ldd --version
 
-      - name: Build and link with static libraries
-        run: |
-        g++ -static -o my_program my_program.cpp -static-libgcc -static-libstdc++
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
