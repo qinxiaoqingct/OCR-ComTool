@@ -81,16 +81,17 @@ jobs:
     - name: Pack As Artifact (Linux)
       if: success() && ( runner.os == 'Linux' )
       run: |
-        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            # Ubuntu 最新版本的打包命令
-            echo "Packaging for Ubuntu latest version"
-            if [ -f build.sh ]; then ./build.sh;fi
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then 
+          echo "Packaging for Ubuntu latest version";
+          if [ -f build.sh ]; then 
+            ./build.sh;
+          fi
+        fi
 
         elif [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
-            # Ubuntu 20.04 版本的打包命令
-            echo "Packaging for Ubuntu 20.04"
+            echo "Packaging for Ubuntu 20.04";
             if [ -f build.sh ]; then ./build.sh;fi
-
+        fi
     - name: Pack As Artifact (macOS)
       if: success() && ( runner.os == 'macOS' )
       run: |
