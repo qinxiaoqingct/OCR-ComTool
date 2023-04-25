@@ -101,7 +101,6 @@ jobs:
 
       - name: Build and link with static libraries
         run: |
-        # 编译和链接静态库
         g++ -static -o my_program my_program.cpp -static-libgcc -static-libstdc++
       - name: Create Release
         id: create_release
