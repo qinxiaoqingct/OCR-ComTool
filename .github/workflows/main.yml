@@ -26,21 +26,22 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
+		
+      - name: Install dependencies (ubuntu-latest)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        then echo "RUNNER_OS:"${{ matrix.os }}
+	
     - name: Install dependencies (ubuntu-20.04)
       if: matrix.os == 'ubuntu-20.04'
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then echo "RUNNER_OS:"${{ matrix.os }}; fi
-
-    - name: Install dependencies (ubuntu-latest)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then echo "RUNNER_OS:"${{ matrix.os }}; fi
+        echo "RUNNER_OS:"${{ matrix.os }}
 
     - name: Install dependencies (macOS)
       if: success() && ( runner.os == 'macOS' )
@@ -59,12 +60,16 @@ jobs:
         echo "RUNNER_OS:"${{ runner.os }}
       shell: pwsh
      
-    - name: Set Up Project Environment(Linux)
-      if: success() && ( runner.os == 'Linux' )
+    - name: Set Up Project Environment(ubuntu-latest)
+      if: ( runner.os == 'Linux' )
       run: |
         if [[ "${{ matrix.os }}" == 'ubuntu-latest' ]]; then
           echo "dist_name=comtool_ubuntu_latest">>$GITHUB_ENV;
-        elif [[ "${{ matrix.os }}" == 'ubuntu-20.04' ]]; then
+	
+    - name: Set Up Project Environment(ubuntu-20.04)
+      if: ( runner.os == 'Linux' )
+      run: |
+        if [[ "${{ matrix.os }}" == 'ubuntu-20.04' ]]; then
           echo "dist_name=comtool_ubuntu_20.04">>$GITHUB_ENV;
         fi
 
@@ -86,15 +91,19 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Pack As Artifact (Linux)
-      if: success() && ( runner.os == 'Linux' )
+    - name: Pack As Artifact (ubuntu-latest)
+      if: ( runner.os == 'Linux' )
       run: |
         if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then 
           echo "Packaging for Ubuntu latest version";
           if [ -f build.sh ]; then 
             ./build.sh;
           fi
-        elif [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
+	
+    - name: Pack As Artifact (ubuntu-20.04)
+      if: ( runner.os == 'Linux' )
+      run: |
+        if [ "${{ matrix.os }}" == "ubuntu-20.04" ]; then
           echo "Packaging for Ubuntu 20.04";
           if [ -f build.sh ]; then 
             ./build.sh;
@@ -102,7 +111,7 @@ jobs:
         fi
 
     - name: Pack As Artifact (macOS)
-      if: success() && ( runner.os == 'macOS' )
+      if: ( runner.os == 'macOS' )
       run: |
         if [ -f build.sh ]; then ./build.sh;fi
 
@@ -118,30 +127,23 @@ jobs:
       run: |
         ls dist
 
-
-    - name: Upload Artifact (Linux)
+    - name: Upload Artifact (ubuntu-latest)
       uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'Linux' )
+      if: ( matrix.os == 'ubuntu-latest' )
       with:
-        name: ${{env.dist_name}}-${{runner.os}}
+        name: ${{env.dist_name}}-${{matrix.os}}
         path: dist/${{env.dist_name}}
 
-        # if: success() && ( runner.os == 'Linux' )
-        # with:
-        #   name: ${{env.dist_name}}-${{runner.os}}
-        #   path: dist/${{env.dist_name}}
-      # if: success() && ( runner.os == 'Linux' ) && ( matrix.os == 'ubuntu-latest' ) 
-      #   with:
-      #     name: ${{env.dist_name}}-${{runner.os}}
-      #     path: dist/${{env.dist_name}}
-      # elif: success() && ( runner.os == 'Linux' ) && ( matrix.os == 'ubuntu-20.04' ) 
-      #   with:
-      #     name: ${{env.dist_name}}-${{runner.os}}
-      #     path: dist/${{env.dist_name}}
+    - name: Upload Artifact (ubuntu-20.04)
+      uses: actions/upload-artifact@v2
+      if: ( matrix.os == 'ubuntu-20.04' )
+      with:
+        name: ${{env.dist_name}}-${{matrix.os}}
+        path: dist/${{env.dist_name}}
 
     - name: Upload Artifact (macOS)
       uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'macOS')
+      if: ( runner.os == 'macOS')
       with:
         name: ${{env.dist_name}}-${{runner.os}}
         path: dist/${{env.dist_name}}
