@@ -64,13 +64,14 @@ jobs:
     - name: Set Up Project Environment(ubuntu-latest)
       if: ( matrix.os == 'ubuntu-latest' )
       run: |
-      	echo "dist_name=comtool_ubuntu_latest">>$GITHUB_ENV
+      	echo "dist_name=comtool">>$GITHUB_ENV
+        echo "GITHUB_ENV:"$GITHUB_ENV
         echo "RUNNER_OS:"${{ matrix.os }}
 	
     - name: Set Up Project Environment(ubuntu-20.04)
       if: ( matrix.os == 'ubuntu-20.04' )
       run: |
-        echo "dist_name=comtool_ubuntu_20.04">>$GITHUB_ENV
+        echo "dist_name=comtool.04">>$GITHUB_ENV
         echo "RUNNER_OS:"${{ matrix.os }}
 
     - name: Set Up Project Environment(macOS)
