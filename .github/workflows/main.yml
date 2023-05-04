@@ -46,7 +46,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        echo "RUNNER_OS:"${{ matrix.os }}
+        echo "RUNNER_OS:"${{ runner.os }}
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -239,8 +239,13 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           # name: ${{env.dist_name}}-${{runner.os}}
-          name: ${{env.dist_name}}-${{matrix.os}}
+          name: ${{env.dist_name}}-${{matrix.os}} || ${{env.dist_name}}-${{runner.os}}
           path: ./
+      # - name: Download build result2 for app
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{env.dist_name}}-${{runner.os}}
+      #     path: ./
       - name: Check Meta Data (ubuntu-latest)
         if: ( matrix.os == 'ubuntu-latest' )
         run: |
@@ -284,11 +289,11 @@ jobs:
           asset_name: ${{env.dist_name}}_${{matrix.os}}_${{ env.tag_name }}
           asset_content_type: application/gzip
       - name: Upload Release Asset (macOS)
-        id: upload-release-asset-linux-macos
+        id: upload-release-asset-macos
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        if: success() && (runner.os == 'Linux' || runner.os == 'macOS')
+        if: (runner.os == 'macOS')
         with:
           upload_url: ${{env.upload_url}} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ${{env.dist_name}}
