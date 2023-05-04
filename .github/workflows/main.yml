@@ -133,7 +133,7 @@ jobs:
         path: dist/${{env.dist_name}}
     - name: Upload Artifact (macOS)
       uses: actions/upload-artifact@v2
-      if:( matrix.os == 'macos-latest' )
+      if: ( matrix.os == 'macos-latest' )
       with:
         name: ${{env.dist_name}}-${{matrix.os}}
         path: dist/${{env.dist_name}}
