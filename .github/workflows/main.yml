@@ -77,10 +77,10 @@ jobs:
         echo "GITHUB_ENV:$GITHUB_ENV"
         echo "RUNNER_OS:"${{ matrix.os }}
     - name: Set Up Project Environment(Windows)
-      if: matrix.os == 'windows-latest'
+      if: runner.os == 'Windows'
       run: |
         echo "dist_name=comtool" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "RUNNER_OS:"${{ matrix.os }}
+
     - name: Lint with flake8
       if: success()
       run: |
@@ -110,7 +110,7 @@ jobs:
         echo "RUNNER_OS:"${{ matrix.os }}
         if [ -f build.sh ]; then ./build.sh;fi
     - name: Pack As Artifact (Windows)
-      if: matrix.os == 'windows-latest'
+      if: runner.os == 'Windows'
       run: |
         cd src 
         python package_script.py
@@ -139,9 +139,9 @@ jobs:
         path: dist/${{env.dist_name}}
     - name: Upload Artifact (Windows)
       uses: actions/upload-artifact@v2
-      if: matrix.os == 'windows-latest' 
+      if: runner.os == 'Windows' 
       with:
-        name: ${{env.dist_name}}-${{runner.os}}
+        name: ${{env.dist_name}}-${{matrix.os}}
         path: dist/${{env.dist_name}}.exe
     
   publish:
