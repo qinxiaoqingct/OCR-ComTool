@@ -41,14 +41,14 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         echo "RUNNER_OS:"${{ matrix.os }}
     - name: Install dependencies (macOS)
-      if: ( matrix.os == 'macos-latest' )
+      if: ( runner.os == 'macOS' )
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         echo "RUNNER_OS:"${{ matrix.os }}
     - name: Install dependencies (Windows)
-      if: runner.os == 'windows-latest'
+      if: ( runner.os == 'Windows' )
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
@@ -60,10 +60,6 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         echo "dist_name=comtool">>$GITHUB_ENV
-      # run: |
-      #   echo "dist_name=comtool">>$GITHUB_ENV
-      #   echo "GITHUB_ENV:$GITHUB_ENV"
-      #   echo "RUNNER_OS:"${{ matrix.os }}
     - name: Set Up Project Environment(ubuntu-20.04)
       if: matrix.os == 'ubuntu-20.04'
       run: |
@@ -80,7 +76,6 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         echo "dist_name=comtool" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
     - name: Lint with flake8
       if: success()
       run: |
