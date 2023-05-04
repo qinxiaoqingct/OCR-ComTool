@@ -174,7 +174,7 @@ jobs:
         run: |
           # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           echo "${{ steps.create_release.outputs.upload_url }}"> upload_url
-      - name: Upload Artifact (Linux || macOS || Windows)
+      - name: Upload Artifact (ubuntu-latest || ubuntu-20.04 || macOS || Windows)
         uses: actions/upload-artifact@v2
         if: success()
         with:
@@ -186,7 +186,7 @@ jobs:
     needs: publish
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -197,9 +197,29 @@ jobs:
         with:
           name: upload_url
           path: ./
-      - name: Set Up Environment(Linux || macOS)
-        id: setup_env_linux_macos
-        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      - name: Set Up Environment(ubuntu-latest)
+        id: setup_env_ubuntu_latest
+        if: ( matrix.os == 'ubuntu-latest')
+        run: |
+          echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
+          echo "dist_name=comtool" >> $GITHUB_ENV
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" >> $GITHUB_ENV
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+      - name: Set Up Environment(ubuntu-20.04)
+        id: setup_env_ubuntu_20.04
+        if: ( matrix.os == 'ubuntu-20.04' )
+        run: |
+          echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
+          echo "dist_name=comtool" >> $GITHUB_ENV
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" >> $GITHUB_ENV
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+      - name: Set Up Environment(macOS)
+        id: setup_env_macos
+        if: ( runner.os == 'macOS' )
         run: |
           echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
           echo "dist_name=comtool" >> $GITHUB_ENV
@@ -217,26 +237,55 @@ jobs:
           echo "env.upload_url:${{env.upload_url}}"
           echo "env.dist_name:${{env.dist_name}}"
           echo "env.tag_name:${{env.tag_name}}"
-
       - name: Download build result for app
         uses: actions/download-artifact@v2
         with:
-          name: ${{env.dist_name}}-${{runner.os}}
+          # name: ${{env.dist_name}}-${{runner.os}}
+          name: ${{env.dist_name}}-${{matrix.os}}
           path: ./
-
-      - name: Check Meta Data (Linux || macOS)
-        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      - name: Check Meta Data (ubuntu-latest)
+        if: ( matrix.os == 'ubuntu-latest' )
         run: |
           if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
           ls ${{env.dist_name}}
-
+      - name: Check Meta Data (ubuntu-20.04)
+        if: ( matrix.os == 'ubuntu-20.04' )
+        run: |
+          if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
+          ls ${{env.dist_name}}
+      - name: Check Meta Data (macOS)
+        if: ( runner.os == 'macOS' )
+        run: |
+          if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
+          ls ${{env.dist_name}}
       - name: Check Meta Data (Windows)
         if: runner.os == 'Windows'
         run: |
           ls ${{env.dist_name}}.exe
         shell: pwsh
-
-      - name: Upload Release Asset (Linux || macOS)
+      - name: Upload Release Asset (ubuntu-latest)
+        id: upload-release-asset-ubuntu-latest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        if: ( matrix.os == 'ubuntu-latest' )
+        with:
+          upload_url: ${{env.upload_url}} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ${{env.dist_name}}
+          asset_name: ${{env.dist_name}}_${{matrix.os}}_${{ env.tag_name }}
+          asset_content_type: application/gzip
+      - name: Upload Release Asset (ubuntu-20.04)
+        id: upload-release-asset-ubuntu-20.04
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        if: ( matrix.os == 'ubuntu-20.04' )
+        with:
+          upload_url: ${{env.upload_url}} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ${{env.dist_name}}
+          asset_name: ${{env.dist_name}}_${{matrix.os}}_${{ env.tag_name }}
+          asset_content_type: application/gzip
+      - name: Upload Release Asset (macOS)
         id: upload-release-asset-linux-macos
         uses: actions/upload-release-asset@v1
         env:
@@ -259,18 +308,18 @@ jobs:
           asset_name: ${{env.dist_name}}_${{runner.os}}_${{ env.tag_name }}.exe
           asset_content_type: application/gzip
 
-  notice-wxworks:
-      name: Notice Release
-      needs: deploy
-      runs-on: ubuntu-latest
-      if: success() && startsWith(github.ref, 'refs/tags/v')
-      steps:
-        - name: notice wxwork when version releases
-          run: |
-            PROJECT_NAME_LO=$(echo ${{ github.repository }} )
-            VERSION=$(echo ${{github.ref }} | awk -F/ '{print $3}' )
-            content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}"
-            curl --header "Content-Type: application/json" \
-            --request POST \
-            --data "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"${content}\"}}" \
-            "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{secrets.WX_RELEASE_BOT_TOKEN}}"
+  # notice-wxworks:
+  #     name: Notice Release
+  #     needs: deploy
+  #     runs-on: ubuntu-latest
+  #     if: success() && startsWith(github.ref, 'refs/tags/v')
+  #     steps:
+  #       - name: notice wxwork when version releases
+  #         run: |
+  #           PROJECT_NAME_LO=$(echo ${{ github.repository }} )
+  #           VERSION=$(echo ${{github.ref }} | awk -F/ '{print $3}' )
+  #           content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}"
+  #           curl --header "Content-Type: application/json" \
+  #           --request POST \
+  #           --data "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"${content}\"}}" \
+  #           "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{secrets.WX_RELEASE_BOT_TOKEN}}"

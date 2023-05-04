@@ -22,4 +22,4 @@ chmod 777 comtool_Linux_v1.0.0
 > 校验位:None
 
 
-![image.png](/16237_image.png)
+![](./16237_image.png)
