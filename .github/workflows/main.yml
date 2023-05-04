@@ -152,10 +152,8 @@ jobs:
       contents: write
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-
       - name: Check GLIBC version
         run: ldd --version
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -208,7 +206,7 @@ jobs:
           echo "env.dist_name:${{env.dist_name}}"
           echo "env.tag_name:${{env.tag_name}}"
       - name: Set Up Environment(ubuntu-20.04)
-        id: setup_env_ubuntu_20.04
+        id: setup_env_ubuntu_2004
         if: ( matrix.os == 'ubuntu-20.04' )
         run: |
           echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
@@ -275,7 +273,7 @@ jobs:
           asset_name: ${{env.dist_name}}_${{matrix.os}}_${{ env.tag_name }}
           asset_content_type: application/gzip
       - name: Upload Release Asset (ubuntu-20.04)
-        id: upload-release-asset-ubuntu-20.04
+        id: upload-release-asset-ubuntu-2004
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
