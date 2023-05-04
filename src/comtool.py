@@ -9,7 +9,8 @@ from PyQt5.QtGui import QTextCursor
 import serial
 import serial.tools.list_ports
 import os
-
+from PyQt5.QtWidgets import QTextBrowser
+import codecs
 # 串口参数
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -99,75 +100,63 @@ class MainWindow(QMainWindow):
         self.refresh_serial_ports()
 
         # 设置波特率列表
-        baudrate_list = ['9600', '19200', '38400', '57600', "74880", '115200', '921600', '1500000','3000000']
+        baudrate_list = ['115200', '921600', '1500000','3000000']
         for baudrate in baudrate_list:
             self.baudrate_combobox.addItem(baudrate)
-        self.baudrate_combobox.setCurrentIndex(7)
+        self.baudrate_combobox.setCurrentIndex(2)
 
         # 设置数据位列表
-        databits_list = ['5', '6', '7', '8']
+        databits_list = ['8']
         for databits in databits_list:
             self.databits_combobox.addItem(databits)
-        self.databits_combobox.setCurrentIndex(3)
+        self.databits_combobox.setCurrentIndex(0)
 
         # 设置停止位列表
-        stopbits_list = ['1', '2']
+        stopbits_list = ['1']
         for stopbits in stopbits_list:
             self.stopbits_combobox.addItem(stopbits)
         self.stopbits_combobox.setCurrentIndex(0)
 
         # 设置校验位列表
-        parity_list = ['None', 'Odd', 'Even', 'Mark', 'Space']
+        parity_list = ['None']
         for parity in parity_list:
             self.parity_combobox.addItem(parity)
         self.parity_combobox.setCurrentIndex(0)
 
     def open_serial(self):
-        # 打开串口
-        # self.serial.setPortName(self.port_combobox.currentText())
-        # self.serial.setBaudRate(int(self.baudrate_combobox.currentText()))
-        # self.serial.setDataBits(int(self.databits_combobox.currentText()))
-        # self.serial.setStopBits(int(self.stopbits_combobox.currentText()))
-        # parity_dict = {'None': QSerialPort.NoParity, 'Odd': QSerialPort.OddParity,
-        #             'Even': QSerialPort.EvenParity, 'Mark': QSerialPort.MarkParity,
-        #             'Space': QSerialPort.SpaceParity}
-        # self.serial.setParity(parity_dict[self.parity_combobox.currentText()])
-        # if self.serial.open(QIODevice.ReadWrite):
-        #     self.statusBar().showMessage(f"已打开串口 {self.serial.portName()}")
-        #     self.open_button.setEnabled(False)
-        #     self.close_button.setEnabled
-
-        # print("port:",self.port_combobox.currentText(),"\n")
         parity_dict = {'None': serial.PARITY_NONE, 'Odd': serial.PARITY_ODD,
                     'Even': serial.PARITY_EVEN, 'Mark': serial.PARITY_MARK,
                     'Space': serial.PARITY_SPACE}
-        # print("baudrate:",int(self.baudrate_combobox.currentText()),"\n")
-        # print("databits:",int(self.databits_combobox.currentText()),"\n")
-        # print("stopbits:",int(self.stopbits_combobox.currentText()),"\n")
-        # print("parity_dict:",parity_dict[self.parity_combobox.currentText()],"\n")
-
-
-        # self.serial = serial.Serial(port=port, baudrate=1500000, bytesize=serial.EIGHTBITS,
-        #     parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
-
-        self.serial = serial.Serial(port=self.port_combobox.currentText(), baudrate=int(self.baudrate_combobox.currentText()), bytesize=int(self.databits_combobox.currentText()),
-            parity=parity_dict[self.parity_combobox.currentText()], stopbits=int(self.stopbits_combobox.currentText()), timeout=1)
-
+        try:
+            self.serial = serial.Serial(port=self.port_combobox.currentText(), baudrate=int(self.baudrate_combobox.currentText()), bytesize=int(self.databits_combobox.currentText()),
+                parity=parity_dict[self.parity_combobox.currentText()], stopbits=int(self.stopbits_combobox.currentText()), timeout=1)
+        except serial.SerialException as e:
+            self.statusBar().showMessage("串口已被占用")
+            print("Could not open port")
+            # return
         # 重新打开串口连接
-        if self.serial.is_open:
-            self.statusBar().showMessage(f"已打开串口 {self.serial.port}")
-            self.open_button.setEnabled(False)
-            self.close_button.setEnabled(True)
-
-        self.start_read_thread()
-
+        try:
+            if self.serial.isOpen():
+                self.statusBar().showMessage(f"已打开串口 {self.serial.port}")
+                self.open_button.setEnabled(False)
+                self.close_button.setEnabled(True)
+                self.start_read_thread()
+                print("start_read_thread")
+        except serial.SerialException as e:
+            # print(f"Could not open port: {e}")
+            print("Could not open port")
+            self.statusBar().showMessage("串口已被占用")
+        
     def close_serial(self):
-        if self.serial.is_open:
-            # 关闭串口
-            self.serial.close()
-            self.statusBar().showMessage(f"已关闭串口 {self.serial.portstr}")
-            self.open_button.setEnabled(True)
-            self.close_button.setEnabled(False)
+        try:
+            if self.serial.isOpen():
+                # 关闭串口
+                self.serial.close()
+                self.statusBar().showMessage(f"已关闭串口 {self.serial.portstr}")
+                self.open_button.setEnabled(True)
+                self.close_button.setEnabled(False)
+        except serial.SerialException as e:
+            print(f"Could not close port: {e}")
 
     def get_platform(self):
         import sys
@@ -501,7 +490,6 @@ class MainWindow(QMainWindow):
                         print(f'[x]递归查询, 剩余数据{uart_len} <= {self.uartFrameHeaderLen}')
                         return result
 
-
                 frame_list = self.hex_string_to_list(dataInfo[startPos: (startPos + 2 * effectiveLen)])
                 result = self.print_frame_info(frame_list)
                 
@@ -520,7 +508,6 @@ class MainWindow(QMainWindow):
                     print(f'[x]递归查询, 剩余数据{uart_len} <= {self.uartFrameHeaderLen}')
                     return result
                 # return result
-
             return 
             
         # 2.pack Uart Frame
@@ -529,6 +516,8 @@ class MainWindow(QMainWindow):
         # self.uartRecvHexStr = ''
         # print(dataInfo)
         # dataInfo[search_pos:]
+        self.receive_text_text_browser.append('找不到有效帧头数据,请检查串口参数设置是否正确!')
+        self.receive_text_text_browser.append(dataInfo)
         return 
     
     def uart_response_feedback_send(self, command_code, data_type):
@@ -556,9 +545,6 @@ class MainWindow(QMainWindow):
         cmd[5] = self.get_frame_lrc(cmd, 0, 5)
 
         cmd_hex_str = self.list_to_hex_string_new(cmd)
-
-        # self.send_text_text_browser.setText(cmd_hex_str)
-        # self.data_send()
 
         input_bytes = bytes(cmd)
         self.serial.write(input_bytes)
@@ -593,7 +579,7 @@ class MainWindow(QMainWindow):
                 hex_str = hex_str.replace(' ','')
                 hex = hex_str.encode('utf-8')
                 str_bin = binascii.unhexlify(hex)
-                text = str_bin.decode('utf-8')
+                text = str_bin.decode('utf-8').rstrip('\x00')
 
                 if text_type in [ 'ocr']: 
                     language_type = reserved_data[1]
@@ -618,7 +604,7 @@ class MainWindow(QMainWindow):
             hex_str = hex_str.replace(' ','')
             hex = hex_str.encode('utf-8')
             str_bin = binascii.unhexlify(hex)
-            text = str_bin.decode('utf-8')
+            text = str_bin.decode('utf-8').rstrip('\x00')
 
             result_text = '{}:[{}]'.format(text_type, text)
         elif text_type in ['dict']:
@@ -627,16 +613,14 @@ class MainWindow(QMainWindow):
             hex_str = hex_str.replace(' ','')
             hex = hex_str.encode('utf-8')
             str_bin = binascii.unhexlify(hex)
-            text = str_bin.decode('utf-8')
+            text = str_bin.decode('utf-8').rstrip('\x00')
 
             result_text = '{}:[{}]'.format(text_type, text)
         else:
             print(f'暂不支持{text_type}')
             return
-
-
         print(result_text)
-
+        print(text)
         return text
 
     def get_frame_res_common_data(self, frame_list):
@@ -746,16 +730,14 @@ class MainWindow(QMainWindow):
                         print(res_common_data)
                         print('OCR文本')
                         text = self.print_text(res_common_data, text_type='ocr')
-
-                        # 在文本框中显示OCR文本
-                        self.receive_text_text_browser.insertPlainText(text)
-                        self.receive_text_text_browser.moveCursor(QTextCursor.End)
+                        # text = "到山下宁冈的茅坪"
+                        # 在文本框中显示OCR文本,并自动换行
+                        self.receive_text_text_browser.append(text)
                         # 获取当前字体
                         font = self.receive_text_text_browser.font()
                         # 设置字体大小为 14
-                        font.setPointSize(18)
+                        font.setPointSize(16)
                         self.receive_text_text_browser.setFont(font)
-
                     else:
                         print("未知数据类型：{}".format(data_type))
                 elif frame_type == 0xFF and cmd == 0x50:
@@ -797,10 +779,12 @@ class ReadThread(QThread):
 
     def run(self):
         while True:
-            if not self.serial.isOpen():
-                time.sleep(0.1)
-                continue
-
+            try:
+                if not self.serial.isOpen():
+                    time.sleep(0.1)
+                    continue
+            except serial.SerialException as e:
+                    print("Could not open port")
             try:
                 # 读取串口数据
                 num = 0
