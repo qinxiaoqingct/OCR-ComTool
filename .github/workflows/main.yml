@@ -46,7 +46,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        echo "RUNNER_OS:"${{ runner.os }}
+        echo "RUNNER_OS:"${{ matrix.os }}
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -133,13 +133,13 @@ jobs:
         path: dist/${{env.dist_name}}
     - name: Upload Artifact (macOS)
       uses: actions/upload-artifact@v2
-      if: ( runner.os == 'macOS')
+      if:( matrix.os == 'macos-latest' )
       with:
-        name: ${{env.dist_name}}-${{runner.os}}
+        name: ${{env.dist_name}}-${{matrix.os}}
         path: dist/${{env.dist_name}}
     - name: Upload Artifact (Windows)
       uses: actions/upload-artifact@v2
-      if: runner.os == 'Windows' 
+      if: matrix.os == 'Windows' 
       with:
         name: ${{env.dist_name}}-${{runner.os}}
         path: dist/${{env.dist_name}}.exe
@@ -172,7 +172,7 @@ jobs:
         run: |
           # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           echo "${{ steps.create_release.outputs.upload_url }}"> upload_url
-      - name: Upload Artifact (ubuntu-latest || ubuntu-20.04 || macOS || Windows)
+      - name: Upload Artifact (ubuntu-latest || ubuntu-20.04 || macos-latest || Windows-latest)
         uses: actions/upload-artifact@v2
         if: success()
         with:
@@ -217,7 +217,7 @@ jobs:
           echo "env.tag_name:${{env.tag_name}}"
       - name: Set Up Environment(macOS)
         id: setup_env_macos
-        if: ( runner.os == 'macOS' )
+        if: ( matrix.os == 'macos-latest' )
         run: |
           echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
           echo "dist_name=comtool" >> $GITHUB_ENV
@@ -227,7 +227,7 @@ jobs:
           echo "env.tag_name:${{env.tag_name}}"
       - name: Set Up Environment(Windows)
         id: setup_env_windows
-        if: runner.os == 'Windows'
+        if: matrix.os == 'Windows-latest'
         run: |
           echo "upload_url=$(cat upload_url)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "dist_name=comtool" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -239,13 +239,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           # name: ${{env.dist_name}}-${{runner.os}}
-          name: ${{env.dist_name}}-${{matrix.os}} || ${{env.dist_name}}-${{runner.os}}
+          name: ${{env.dist_name}}-${{matrix.os}}
           path: ./
-      # - name: Download build result2 for app
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{env.dist_name}}-${{runner.os}}
-      #     path: ./
       - name: Check Meta Data (ubuntu-latest)
         if: ( matrix.os == 'ubuntu-latest' )
         run: |
@@ -257,12 +252,12 @@ jobs:
           if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
           ls ${{env.dist_name}}
       - name: Check Meta Data (macOS)
-        if: ( runner.os == 'macOS' )
+        if: ( matrix.os == 'macOS-latest' )
         run: |
           if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
           ls ${{env.dist_name}}
       - name: Check Meta Data (Windows)
-        if: runner.os == 'Windows'
+        if: matrix.os == 'Windows-latest'
         run: |
           ls ${{env.dist_name}}.exe
         shell: pwsh
@@ -293,7 +288,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        if: (runner.os == 'macOS')
+        if: (matrix.os == 'macOS-latest')
         with:
           upload_url: ${{env.upload_url}} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ${{env.dist_name}}
@@ -304,7 +299,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: runner.os == 'Windows'
+        if: matrix.os == 'Windows-latest'
         with:
           upload_url: ${{ env.upload_url }} 
           asset_path: ${{ env.dist_name }}.exe
